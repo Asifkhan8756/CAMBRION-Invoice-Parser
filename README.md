@@ -108,15 +108,17 @@ invoice-parser/
 
 ## Docker (Alternative Setup)
 
+**Prerequisite**: Docker Desktop must be installed and running.
+
 1. **Build the image**
-   ```bash
+```bash
    docker build -t invoice-parser .
-   ```
+```
 
 2. **Run the container**
-   ```bash
+```bash
    docker run -p 8000:8000 --env-file .env invoice-parser
-   ```
+```
 
 3. The API will be available at `http://localhost:8000`.
 
