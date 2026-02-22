@@ -13,9 +13,9 @@ The application follows a three-stage pipeline:
 
 1. **Input Validation** (`main.py`): Accepts file uploads via a POST endpoint. Validates file type (PNG or PDF), file size (max 10MB), and ensures the file is not empty.
 
-2. **Text Extraction** (`utils.py`): Uses a dual extraction strategy based on file type. PNG images are encoded as base64 and sent to OpenAI's GPT-4.1 vision model for text extraction. PDFs are processed directly using pypdf to extract embedded text — this is faster and cheaper since it avoids an API call entirely.
+2. **Text Extraction** (`utils.py`): Uses a dual extraction strategy based on file type. PNG images are encoded as base64 and sent to OpenAI's GPT-4.1 vision model for text extraction. PDFs are processed directly using pypdf to extract embedded text — this skips the Vision API call, making PDF processing faster and cheaper.
 
-3. **Structured Extraction** (`dspy_parser.py`): Uses DSPy's `ChainOfThought` module with a typed `Signature` to extract specific fields from the raw text. The LLM reasons step by step through the invoice content to identify and format each field.
+3. **Structured Extraction** (`dspy_parser.py`): Uses DSPy's `ChainOfThought` module with a typed `Signature` to extract specific fields from the raw text. The LLM reasons step by step through the invoice content to identify and format each field. This step requires an OpenAI API call for both PNG and PDF processing.
 
 ### DSPy Signature Design
 
@@ -35,7 +35,7 @@ Each output field includes a detailed description that guides the LLM, with spec
 ### Key Design Decisions
 
 - **GPT-4.1 for vision and extraction**: Chosen for reliable image reading and accurate structured extraction over cheaper alternatives. GPT-4o-mini was tested but produced inconsistent results with dense invoice images.
-- **Dual extraction strategy**: PNG images use OpenAI Vision for text extraction, while PDFs use pypdf for direct text extraction. This avoids unnecessary API calls for PDFs, making PDF processing faster and cheaper.
+- **Dual extraction strategy**: PNG images use OpenAI Vision for text extraction, while PDFs use pypdf for direct text extraction. This avoids the Vision API call for PDFs, making PDF processing faster and cheaper.
 - **Two-step pipeline (text extraction → DSPy)**: DSPy signatures work with text input, so the document is first converted to text (via Vision or pypdf), then processed by DSPy. This separates concerns and makes each step independently testable.
 - **ChainOfThought over Predict**: Provides step-by-step reasoning which improves accuracy when parsing complex invoices with multiple line items, mixed languages, and varied number formats.
 - **Line items as JSON string**: DSPy handles string outputs most reliably. The JSON string is parsed and validated through Pydantic models before returning to the client.
@@ -77,7 +77,7 @@ invoice-parser/
 1. **Clone the repository**
    ```bash
    git clone https://github.com/Asifkhan8756/CAMBRION-Invoice-Parser.git
-   cd invoice-parser
+   cd CAMBRION-Invoice-Parser
    ```
 
 2. **Create a virtual environment**
@@ -126,18 +126,11 @@ invoice-parser/
 
 Open `http://localhost:8000/docs` in your browser. Click on the POST `/parse-invoice` endpoint, select "Try it out", upload an invoice file, and click "Execute".
 
-### curl Examples
+### curl Example
 
-**PNG invoice:**
 ```bash
 curl -X POST "http://localhost:8000/parse-invoice" \
   -F "file=@samples/Invoice1.png"
-```
-
-**PDF invoice:**
-```bash
-curl -X POST "http://localhost:8000/parse-invoice" \
-  -F "file=@samples/invoice.pdf"
 ```
 
 ### Example Response
@@ -215,8 +208,8 @@ The test suite includes:
 - **PDF text-based only**: PDF extraction uses pypdf which works with text-based PDFs. Scanned or image-based PDFs will not extract correctly.
 - **Single page PDFs**: For PDFs, all pages are processed but complex multi-page layouts may affect extraction accuracy.
 - **Language support**: Optimized for German and English invoices. Other languages may work but are not explicitly handled in the DSPy signature descriptions.
-- **API dependency**: PNG processing requires an active OpenAI API key and internet connection. PDF processing works offline via pypdf.
-- **Cost**: PNG processing uses GPT-4.1 for both vision and extraction. PDF processing only uses GPT-4.1 for DSPy extraction (no vision call needed).
+- **API dependency**: Both PNG and PDF processing require an active OpenAI API key and internet connection for DSPy structured extraction. PDF text extraction via pypdf works offline, but the DSPy step always requires an API call.
+- **Cost**: PNG processing requires two GPT-4.1 API calls (Vision + DSPy). PDF processing requires one GPT-4.1 API call (DSPy only, since text is extracted offline via pypdf).
 - **Line item accuracy**: Complex or unusual invoice layouts may result in incomplete or incorrect line item extraction.
 - **File size limit**: Maximum upload size is 10MB.
 - **No authentication**: The API has no authentication or rate limiting — intended for local development and testing only.
