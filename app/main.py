@@ -31,24 +31,24 @@ async def health_check() -> dict:
 async def parse_invoice(file: UploadFile = File(...)) -> InvoiceData:
     """Accept an invoice file (PNG or PDF) and return extracted structured data."""
 
-    # 1. Validate file type
+    # Validate file type
     if file.content_type not in ALLOWED_TYPES:
         raise HTTPException(
             status_code=400,
             detail=f"Invalid file type: {file.content_type}. Accepted: PNG and PDF.",
         )
 
-    # 2. Read file bytes
+    # Read file bytes
     file_bytes = await file.read()
 
-    # 3. Validate not empty
+    # Validate not empty
     if len(file_bytes) == 0:
         raise HTTPException(
             status_code=400,
             detail="Uploaded file is empty.",
         )
 
-    # 4. Validate file size
+    # Validate file size
     if len(file_bytes) > MAX_FILE_SIZE:
         raise HTTPException(
             status_code=400,
@@ -56,16 +56,16 @@ async def parse_invoice(file: UploadFile = File(...)) -> InvoiceData:
         )
 
     try:
-        # 5. Extract text based on file type
+        # Extract text based on file type
         if file.content_type == "application/pdf":
             text = pdf_to_text(file_bytes)
         else:
             text = invoice_data_extraction(file_bytes)
 
-        # 6. Extract structured data using DSPy ChainOfThought
+        # Extract structured data using DSPy ChainOfThought
         result = parser(invoice_text=text)
 
-        # 7. Parse line items from JSON string to list of LineItem objects
+        # Parse line items from JSON string to list of LineItem objects
         line_items: list[LineItem] = []
         if result.line_items:
             parsed_items = (
@@ -75,7 +75,7 @@ async def parse_invoice(file: UploadFile = File(...)) -> InvoiceData:
             )
             line_items = [LineItem(**item) for item in parsed_items]
 
-        # 8. Build and return validated response
+        # Build and return validated response
         return InvoiceData(
             invoice_number=result.invoice_number,
             date=result.date,

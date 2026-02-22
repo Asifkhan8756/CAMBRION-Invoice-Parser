@@ -64,7 +64,6 @@ def setup_dspy() -> InvoiceParser:
     """Configure the DSPy language model and return an InvoiceParser instance.
 
     Uses OpenAI GPT-4.1 for reliable structured extraction.
-    Called once at application startup.
     """
     lm = dspy.LM("openai/gpt-4.1", api_key=os.getenv("OPENAI_API_KEY"))
     dspy.configure(lm=lm)

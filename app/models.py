@@ -21,9 +21,3 @@ class InvoiceData(BaseModel):
     total_amount: float  # Final total amount including tax
     currency: str  # Currency code (e.g., "EUR", "USD")
     line_items: list[LineItem]  # List of individual items on the invoice
-
-
-class ErrorResponse(BaseModel):
-    """Standard error response format."""
-
-    detail: str  # Human-readable error message
