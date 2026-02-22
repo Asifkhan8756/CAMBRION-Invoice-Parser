@@ -105,7 +105,7 @@ invoice-parser/
    ```bash
    uvicorn app.main:app --reload
    ```
-   The API will be available at `http://localhost:8000`.
+   The API will be available at `http://localhost:8000/docs`.
 
 ## Docker (Alternative Setup)
 
@@ -127,7 +127,7 @@ invoice-parser/
    docker run -p 8000:8000 --env-file .env invoice-parser
 ```
 
-4. The API will be available at `http://localhost:8000`.
+4. The API will be available at `http://localhost:8000/docs`.
 
 ## Usage Guide
 
