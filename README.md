@@ -110,17 +110,23 @@ invoice-parser/
 
 **Prerequisite**: Docker Desktop must be installed and running.
 
-1. **Build the image**
+1. **Configure environment variables**
+```bash
+   cp .env.example .env
+```
+   Open `.env` and add your OpenAI API key.
+
+2. **Build the image**
 ```bash
    docker build -t invoice-parser .
 ```
 
-2. **Run the container**
+3. **Run the container**
 ```bash
    docker run -p 8000:8000 --env-file .env invoice-parser
 ```
 
-3. The API will be available at `http://localhost:8000`.
+4. The API will be available at `http://localhost:8000`.
 
 ## Usage Guide
 
