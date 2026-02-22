@@ -8,6 +8,7 @@ A FastAPI application that extracts structured data from invoice documents using
 PNG Upload  → FastAPI Validation → OpenAI Vision (image → text)    → DSPy ChainOfThought → JSON Response
 PDF Upload  → FastAPI Validation → pypdf (direct text extraction)  → DSPy ChainOfThought → JSON Response
 ```
+The API first validates file size and type, then performs text extraction, and finally structured parsing.
 
 The application follows a three-stage pipeline:
 
@@ -34,7 +35,7 @@ Each output field includes a detailed description that guides the LLM, with spec
 
 ### Key Design Decisions
 
-- **GPT-4.1 for vision and extraction**: Chosen for reliable image reading and accurate structured extraction over cheaper alternatives. GPT-4o-mini was tested but produced inconsistent results with dense invoice images.
+- **GPT-4.1 for vision and extraction**: GPT-4.1 was selected for reliable vision-based text extraction and consistent structured parsing results during testing. GPT-4o-mini was tested but produced inconsistent results with dense invoice images.
 - **Dual extraction strategy**: PNG images use OpenAI Vision for text extraction, while PDFs use pypdf for direct text extraction. This avoids the Vision API call for PDFs, making PDF processing faster and cheaper.
 - **Two-step pipeline (text extraction → DSPy)**: DSPy signatures work with text input, so the document is first converted to text (via Vision or pypdf), then processed by DSPy. This separates concerns and makes each step independently testable.
 - **ChainOfThought over Predict**: Provides step-by-step reasoning which improves accuracy when parsing complex invoices with multiple line items, mixed languages, and varied number formats.
@@ -210,14 +211,17 @@ The test suite includes:
 - **test_reject_empty_file**: Ensures empty files are rejected with 400
 - **test_parse_invoice**: End-to-end test with a real invoice (requires OpenAI API key)
 
+**Note**: The end-to-end test requires a valid OpenAI API key configured in the environment.
+
 ## Assumptions and Limitations
 
 - **PNG and PDF only**: The API accepts PNG images and PDF documents. Other formats are rejected.
 - **PDF text-based only**: PDF extraction uses pypdf which works with text-based PDFs. Scanned or image-based PDFs will not extract correctly.
-- **Single page PDFs**: For PDFs, all pages are processed but complex multi-page layouts may affect extraction accuracy.
+- **PDF support**: Text is extracted from PDF documents using pypdf. Extraction works best for simple, text-based invoices. Complex or multi-page layouts may result in incomplete data.
 - **Language support**: Optimized for German and English invoices. Other languages may work but are not explicitly handled in the DSPy signature descriptions.
 - **API dependency**: Both PNG and PDF processing require an active OpenAI API key and internet connection for DSPy structured extraction. PDF text extraction via pypdf works offline, but the DSPy step always requires an API call.
 - **Cost**: PNG processing requires two GPT-4.1 API calls (Vision + DSPy). PDF processing requires one GPT-4.1 API call (DSPy only, since text is extracted offline via pypdf).
+- **Empty invoice handling**: If no structured invoice information is detected, the API returns a 400 Bad Request with the message "No data found in invoice."
 - **Line item accuracy**: Complex or unusual invoice layouts may result in incomplete or incorrect line item extraction.
 - **File size limit**: Maximum upload size is 10MB.
 - **No authentication**: The API has no authentication or rate limiting — intended for local development and testing only.

@@ -41,7 +41,7 @@ async def parse_invoice(file: UploadFile = File(...)) -> InvoiceData:
     # Read file bytes
     file_bytes = await file.read()
 
-    # Validate not empty
+    # Validate not empty or currupt file
     if len(file_bytes) == 0:
         raise HTTPException(
             status_code=400,
@@ -64,6 +64,19 @@ async def parse_invoice(file: UploadFile = File(...)) -> InvoiceData:
 
         # Extract structured data using DSPy ChainOfThought
         result = parser(invoice_text=text)
+
+        # Check if all important fields are not empty
+        if (
+            not result.invoice_number.strip()
+            and not result.vendor_name.strip()
+            and not result.date.strip()
+            and result.total_amount == 0
+            and (not result.line_items or result.line_items.strip() in ["", "[]"])
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="No data found in invoice."
+            )
 
         # Parse line items from JSON string to list of LineItem objects
         line_items: list[LineItem] = []
